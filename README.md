@@ -6,32 +6,23 @@
 # Pinout for v2.0
 ![ESP32 Pinout](./images/pinout.png)
 
-#### Pin changes from v1.0
+#### Added 4K7 pullup resistors on SDA and SCL
 
-D4 (ESP Wifi Off) moved to D36
+#### Pin changes
 
-D5 (ESP Wifi Mode) moved to D39
+D4 (ESP Wifi Off) changed to D36
 
-D18 (ESP Restore Defaults) moved to D34
+D5 (ESP Wifi Mode) changed to D39
 
-GPS_RX moved to D33
+D18 (ESP Restore Defaults) changed to D34
 
-GPS_TX moved to D25
+GPS_RX changed to D33
 
+GPS_TX changed to D25
 
-#### New pins
+#### I2C pins: SDA (D21), SCL (D22)
 
-I2C: SDA (D21), SCL (D22)
-
-SPI: CS (D5), CLK (D18), MISO (D19), MOSI (D23), RST (D13)
-
-
-#### Remaining available pins:
-
-D4, D12, D14, D26, D27
-
-
-
+#### SPI pins: CS (D5), CLK (D18), MISO (D19), MOSI (D23), RST (D13)
 
 # Shared project on OshPark (PCB v2.0)
 https://oshpark.com/shared_projects/jyQbF7Wx
