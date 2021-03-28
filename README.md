@@ -3,6 +3,10 @@
 ![Homebrew in a compact box](./images/Homebrew.jpg)
 ![Homebrew inside the compact box](./images/Homebrew-inside.jpg)
 
+# Shared project on OshPark (PCB v2.0)
+https://oshpark.com/shared_projects/jyQbF7Wx
+
+
 ## 3D Printing
 ### Box design for PCB v1.0-compact
 https://www.thingiverse.com/thing:4806408
