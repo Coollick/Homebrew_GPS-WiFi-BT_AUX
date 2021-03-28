@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name SN74HC125N)(type Legacy)(uri ${KIPRJMOD}/SN74HC125N/SN74HC125N.lib)(options "")(descr ""))
+  (lib (name ESP32DEVKITV1)(type Legacy)(uri ${KIPRJMOD}/ESP32DEVKIT1/ESP32DEVKITV1.lib)(options "")(descr ""))
+)

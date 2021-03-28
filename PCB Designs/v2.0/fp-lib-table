@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name CoolLick)(type KiCad)(uri ${KIPRJMOD}/CoolLick)(options "")(descr ""))
+  (lib (name ESP32DEVKIT1)(type KiCad)(uri ${KIPRJMOD}/ESP32DEVKIT1)(options "")(descr ""))
+  (lib (name SN74HC125N)(type KiCad)(uri ${KIPRJMOD}/SN74HC125N)(options "")(descr ""))
+)
