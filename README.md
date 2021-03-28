@@ -6,18 +6,28 @@
 # Pinout for v2.0
 ![ESP32 Pinout](./images/pinout.png)
 
-Pin changes from v1.0
+#### Pin changes from v1.0
+
 D4 (ESP Wifi Off) moved to D36
+
 D5 (ESP Wifi Mode) moved to D39
+
 D18 (ESP Restore Defaults) moved to D34
+
 GPS_RX moved to D33
+
 GPS_TX moved to D25
 
-New pins
+
+#### New pins
+
 I2C: SDA (D21), SCL (D22)
+
 SPI: CS (D5), CLK (D18), MISO (D19), MOSI (D23), RST (D13)
 
-Remaining available pins:
+
+#### Remaining available pins:
+
 D4, D12, D14, D26, D27
 
 
