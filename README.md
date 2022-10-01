@@ -37,6 +37,7 @@ https://www.tinkercad.com/things/dk77gXFjQE0-homebrewgps-wifi-btaux
 - 3x 330Ω resistor
 - 2x 4,7KΩ (4700Ω) resistor
 - 2 diode (any will do, something like 1N5819 or 1N5822)
+- Optional: 1x SSD1306 I2C OLED screen (128x64 0.96 inch)
 
 You can find an aliexpress wishlist with the hardware list [here](https://s.click.aliexpress.com/e/_DBdeQVt) (only the RJ12 socket cannot be ordered from Aliexpress)
 
