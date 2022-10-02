@@ -3,8 +3,8 @@
    Copyright(c) Mark Lord <mlord@pobox.com>.
    This code is free for personal use/modification/whatever.
 */
-#define VERSION "4.0"
-#define VERSION_DATE "2022-02-12"
+#define VERSION "4.1"
+#define VERSION_DATE "2022-10-02"
 /*
    Arduino IDE configuration for this project:
     -- Remove all use of LED_PIN, in preparation for using SPI bus.
@@ -12,6 +12,8 @@
     -- Now choose Partition Scheme="Huge APP (3MB..)".
     -- and also CPU Frequency = 80Mhz (WiFi/BT).
 
+   Version 4.1
+    -- Added support for OLED on I2C
    Version 4.0
     -- Adapted pinout for Coollick's PCB
    Version 3.8
@@ -147,6 +149,7 @@
 #define ETH_ENABLED       false   // When false, Ethernet code is completely left out
 #define FORCE_WIFI_ON     true    // When true, Wifi is always on an switch is ignored
 #define FORCE_AP_MODE     true    // When true, Access Point mode is always on, this allow to connect directly to homebrew via wifi
+#define USE_OLED          true   // When true, SSD1306 128x64 oled display on I2C
 
 static bool verbose;
 static bool gpsverbose =  false;  // Can be toggled at run-time (hit 'g' on serial monitor)
@@ -168,15 +171,15 @@ static bool gpsverbose =  false;  // Can be toggled at run-time (hit 'g' on seri
 #include <TinyGPS++.h>
 
 // PIN definitions for this project:
-#define AUXBUS_RX_PIN               16  // Serial port 2 RX pin
-#define AUXBUS_BUSYOUT_PIN          32  // The RTS (aka. "Busy") line output to Nexstar auxBus
-#define AUXBUS_BUSYIN_PIN           35  // The RTS (aka. "Busy") line input from Nexstar auxBus
 
 // Some of the original PIN choices conflict with SPI and I2C busses.
 // The default I2C wants pins 21(SDA), 22(SCL).
 // The default SPI wants pins 18(SCK), 19(MISO), 23(MOSI), and SS pins: 5(USBhost), 10(ethernet).
-
+#define LED_PIN                      2  // ESP32 built-in LED
+#define AUXBUS_BUSYOUT_PIN          32  // The RTS (aka. "Busy") line output to Nexstar auxBus
+#define AUXBUS_BUSYIN_PIN           35  // The RTS (aka. "Busy") line input from Nexstar auxBus
 #define AUXBUS_TX_PIN               17  //TX2.  All-in-one uses 17 for USBHost-INT
+#define AUXBUS_RX_PIN               16  // Serial port 2 RX pin
 #define EVO_WIFI_OFF_PIN            15  // Internal WiFi: ground to turn on, float high to turn off; undefine for automatic on/off.
 #define ESP32_WIFI_OFF_PIN          36  // ESP32 WiFi: ground to turn on, float high to turn off
 #define ESP32_WIFI_MODE_PIN         39  // ESP32 WiFi: ground to select client-mode; float high for SoftAP mode
@@ -531,7 +534,9 @@ static inline void bt_tx (byte *data, uint16_t count)
 static void w2000_tx (byte *data, uint16_t count)
 {
   if (!esp32_wifi_off && w2000.connected()) {
+    digitalWrite(LED_PIN, LED_OFF);
     w2000.write(data, count);
+    digitalWrite(LED_PIN, LED_ON);
     if (verbose)
       print_packet(__func__, data, count);
   }
@@ -931,6 +936,7 @@ static void set_esp32_wifi (bool want_off)
     Serial.println("esp32_wifi OFF");
     if (!wifi_client_mode)
       WiFi.softAPdisconnect(true);
+    digitalWrite(LED_PIN, LED_OFF);
   } else {
     wifi_client_mode = is_wifi_client_mode_requested();
     Serial.printf("esp32_wifi ON, %s mode\n", wifi_client_mode ? "Client" : "Server");
@@ -1240,6 +1246,96 @@ static void service_w2000()
 #include "eth.h"
 #endif
 
+#if USE_OLED
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+#define SCREEN_ADDRESS     0x3c
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire);
+unsigned long next_oled_update = 0;
+static const unsigned char PROGMEM wifi_icon[] =
+{
+  0b00000000, 0b00000000, //
+  0b00000111, 0b11100000, //      ######
+  0b00011111, 0b11111000, //    ##########
+  0b00111111, 0b11111100, //   ############
+  0b01110000, 0b00001110, //  ###        ###
+  0b01100111, 0b11100110, //  ##  ######  ##
+  0b00001111, 0b11110000, //     ########
+  0b00011000, 0b00011000, //    ##      ##
+  0b00000011, 0b11000000, //       ####
+  0b00000111, 0b11100000, //      ######
+  0b00000100, 0b00100000, //      #    #
+  0b00000001, 0b10000000, //        ##
+  0b00000001, 0b10000000, //        ##
+  0b00000000, 0b00000000, //
+  0b00000000, 0b00000000, //
+  0b00000000, 0b00000000, //
+};
+static const unsigned char PROGMEM nocon_icon[] =
+{
+  0b00000000, 0b00000000, //
+  0b00000011, 0b11100000, //       #####
+  0b00001111, 0b11111000, //     #########
+  0b00011111, 0b11111100, //    ###########
+  0b00111110, 0b00111110, //   #####   #####
+  0b00111000, 0b01111110, //   ###    ######
+  0b01110000, 0b11111111, //  ###    ########
+  0b01110001, 0b11110111, //  ###   ##### ###
+  0b01110011, 0b11000111, //  ###  ####   ###
+  0b01110111, 0b10000111, //  ### ####    ###
+  0b00111111, 0b00001110, //   ######    ###
+  0b00111110, 0b00011110, //   #####    ####
+  0b00011111, 0b11111100, //    ###########
+  0b00001111, 0b11111000, //     #########
+  0b00000011, 0b11100000, //       #####
+  0b00000000, 0b00000000, //
+};
+static void update_oled_display() {
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  display.setTextSize(1);
+
+  display.print(vals[find_val("softap.ssid")]);
+  display.print("  ");
+  display.println(VERSION);
+
+  display.setCursor(16, 8);
+  if (esp32_wifi_off) {
+    display.drawBitmap(0, 8, nocon_icon, 16, 16, 1);
+    display.println("WifiOFF " VERSION_DATE);
+    //    display.setCursor(16,16);
+    display.println();
+  } else {
+    display.drawBitmap(0, 8, wifi_icon, 16, 16, 1);
+    if (wifi_client_mode) {
+      display.println("Client " VERSION_DATE);
+      display.setCursor(16, 16);
+      display.println(WiFi.localIP());
+    } else {
+      display.println("SoftAP " VERSION_DATE);
+      display.setCursor(16, 16);
+      display.println("1.2.3.4");
+    }
+  }
+
+  display.setTextSize(2);
+  display.println(gps.location.lat(), 6);
+  display.println(gps.location.lng(), 6);
+
+  display.setTextSize(1);
+  char str[32];
+  sprintf(str, "%04d/%02d/%02d %02d:%02d:%02d", gps.date.year(), gps.date.month(), gps.date.day(), gps.time.hour(), gps.time.minute(), gps.time.second());
+  display.println(str);
+
+  display.display();
+}
+#endif
+
 void loop()
 {
   manage_evo_wifi_switch();  // Does nothing unless EVO_WIFI_OFF_PIN is defined
@@ -1250,6 +1346,17 @@ void loop()
 #if ETH_ENABLED
   ethernet_loop();
 #endif
+#if USE_OLED
+  //update OLED
+  if (!next_oled_update || time_after(millis(), next_oled_update)) {
+    update_oled_display();
+    next_oled_update = get_timeout(1000);
+  }
+#endif
+  if (!esp32_wifi_off && (w2000.connected() || w3000.connected()))
+    digitalWrite(LED_PIN, LED_ON);
+  else
+    digitalWrite(LED_PIN, LED_OFF);
 }
 
 void setup()
@@ -1264,10 +1371,22 @@ void setup()
 #ifdef ESP32_RESTORE_DEFAULTS_PIN
   pinMode(ESP32_RESTORE_DEFAULTS_PIN, INPUT_PULLUP);
 #endif
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LED_ON);
   pinMode(ESP32_WIFI_MODE_PIN, INPUT_PULLUP);
   pinMode(ESP32_WIFI_OFF_PIN,  INPUT_PULLUP);
-
   Serial.begin(115200, SERIAL_8N1);
+#if USE_OLED
+  if (display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.cp437(true);
+    display.println("Start");
+    display.display();
+  } else Serial.println(F("SSD1306 allocation failed"));
+#endif
 
   esp_read_mac(wifi_mac_addr, ESP_MAC_WIFI_STA);
 
@@ -1284,6 +1403,7 @@ void setup()
 
   gpsr.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
   memset(auxbus_txq, 0, sizeof(auxbus_txq));
+  digitalWrite(LED_PIN, LED_OFF);
   Serial.println(ADAPTER_VERSION);
 #if ETH_ENABLED
   ethernet_setup();
