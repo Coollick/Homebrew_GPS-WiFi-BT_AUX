@@ -38,6 +38,7 @@ https://www.tinkercad.com/things/dk77gXFjQE0-homebrewgps-wifi-btaux
 
 ## Hardware list
 - Amphenol RJ12 socket 54601-906WPLF
+- ESP-32 30Pin development board
 - Beitian BN-180 GPS
 - 1x 74HC125 (Sometimes called 74HC125N)
 - 2x 50kΩ resistor (or 51kΩ)
